@@ -20,9 +20,6 @@ st.sidebar.title("📸 InClass Alert")
 st.sidebar.subheader("Module 1: Data Engine")
 app_mode = st.sidebar.radio("Select Mode", ["View Database", "Webcam Enrollment", "Dataset Upload"])
 
-# ==========================================
-# MODE 1: VIEW DATABASE (Check your work)
-# ==========================================
 if app_mode == "View Database":
     st.title("🗄️ Enrolled Students Database")
     st.markdown("Check which students are currently registered in the system.")
@@ -43,9 +40,6 @@ if app_mode == "View Database":
                     st.success(f"**{student}**")
                     st.write(f"Images: {img_count}")
 
-# ==========================================
-# MODE 2: WEBCAM ENROLLMENT 
-# ==========================================
 elif app_mode == "Webcam Enrollment":
     st.title("🎥 Live Webcam Enrollment")
     student_name = st.text_input("Enter Student Name:")
@@ -81,9 +75,7 @@ elif app_mode == "Webcam Enrollment":
             cv2.destroyAllWindows()
             st.success(f"✅ Successfully registered {student_name}!")
 
-# ==========================================
-# MODE 3: DATASET UPLOAD (Your new feature)
-# ==========================================
+
 elif app_mode == "Dataset Upload":
     st.title("📁 Bulk Dataset Upload")
     st.markdown("Upload existing photos of a student from your computer.")
