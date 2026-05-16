@@ -4,9 +4,8 @@ node_modules/
 # environment files
 .env
 .ic/
-.datasets/
+datasets/
 # logs
 *.log
 
-# OS files
-.DS_Store
+# OS file
