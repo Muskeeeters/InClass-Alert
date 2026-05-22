@@ -2,7 +2,7 @@ import streamlit as st
 # Importing your logic file to handle data operations
 import enrollment as logic
 
-st.set_page_config(page_title="InClass Alert | Admin", layout="wide")
+# st.set_page_config(page_title="InClass Alert | Admin", layout="wide")
 
 # We use session state to queue toast messages so they render upon script rerun
 if "toast_msg" not in st.session_state:
@@ -18,10 +18,6 @@ html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, sans-serif;
 }
 
-section[data-testid="stSidebar"] {
-    background-color: #0f172a;
-    border-right: 1px solid #1e293b;
-}
 
 .glass-card {
     background: rgba(30, 41, 59, 0.45);

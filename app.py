@@ -150,13 +150,17 @@ st.sidebar.caption("By Ramlah, Haleema, and Talal")
 app_mode = st.sidebar.radio("System Navigation", ["Live Attendance Dashboard", "Enroll New Student"])
 
 if app_mode == "Enroll New Student":
-    # Loads Talal's UI perfectly
     try:
+        import sys
+        # This forces Python to rerun the file every time you click the tab
+        if "enrollment_gui" in sys.modules:
+            del sys.modules["enrollment_gui"]
+            
         import enrollment_gui 
-    except ImportError:
-        st.error("Could not find 'enrollment_gui.py'. Make sure it's in the same folder.")
+    except Exception as e:
+        st.error(f"Error loading enrollment file: {e}")
 else:
-    st.title("📊 Today's Attendance Roster")
+    st.title("📊 Today's Attendance ")
     st.markdown("Select a student below to initiate the dual-layer authentication scan.")
     st.divider()
     
@@ -182,7 +186,7 @@ else:
                 c2.error(f"🚨 {current_status}") 
                 
             # Scan Button Logic
-            if c3.button(f"Scan Profile", key=f"btn_{student}"):
+            if c3.button(f"Take attendance", key=f"btn_{student}"):
                 final_result = mark_attendance_scanner(student)
                 st.session_state.attendance_sheet[student] = final_result
                 st.rerun() # Instantly refreshes the UI to show the new result
