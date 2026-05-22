@@ -11,71 +11,108 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import pickle
+import urllib.request
+
+xml_url = "https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml"
+face_cascade = cv2.CascadeClassifier()
+
+if not face_cascade.load(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'):
+    xml_path = "haarcascade_frontalface_default.xml"
+    if not os.path.exists(xml_path):
+        print("[INFO] Downloading face detector XML... Please wait.")
+        urllib.request.urlretrieve(xml_url, xml_path)
+    face_cascade.load(xml_path)
 
 def load_dataset_and_preprocess(dataset_path, target_size=(64, 64)):
-    X, y = [], []
-    print("[INFO] Extracting flattened facial feature maps from dataset... Please wait.")
+    X_data, labels_list = [], []
+    print("[INFO] Loading dataset, cropping tightly, and applying Data Augmentation...")
     
     if not os.path.exists(dataset_path):
         print(f"[ERROR] Dataset directory '{dataset_path}' not found!")
-        return np.array(X), np.array(y)
+        return np.array(X_data), np.array(labels_list)
+
+    total_images_processed = 0
+    faces_detected_count = 0
 
     for student_name in os.listdir(dataset_path):
         student_folder = os.path.join(dataset_path, student_name)
         if not os.path.isdir(student_folder):
             continue
             
-        print(f"[PROCESSING] Loading images for student: {student_name}")
+        print(f"[PROCESSING] Augmenting data for: {student_name}")
         for image_name in os.listdir(student_folder):
             image_path = os.path.join(student_folder, image_name)
             
-            # Load in grayscale for uniform structural analysis
             img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             if img is None:
                 continue
                 
-            # Resize to ensure all feature vector lengths match perfectly
-            img_resized = cv2.resize(img, target_size)
-            X.append(img_resized.flatten())
-            y.append(student_name)
+            total_images_processed += 1
+            faces = face_cascade.detectMultiScale(img, scaleFactor=1.1, minNeighbors=4, minSize=(30, 30))
+            
+            if len(faces) > 0:
+                (x, coord_y, w, h) = sorted(faces, key=lambda f: f[2]*f[3], reverse=True)[0]
+                face_crop = img[coord_y:coord_y+h, x:x+w]
+                faces_detected_count += 1
+            else:
+                h_img, w_img = img.shape
+                start_x, start_y = int(w_img * 0.15), int(h_img * 0.15)
+                end_x, end_y = int(w_img * 0.85), int(h_img * 0.85)
+                face_crop = img[start_y:end_y, start_x:end_x]
+            
+            img_resized = cv2.resize(face_crop, target_size)
+            
+            # --- THE MAGIC TRICK: DATA AUGMENTATION ---
+            # 1. Original Face
+            X_data.append(img_resized.flatten())
+            labels_list.append(student_name)
+            
+            # 2. Horizontally Flipped Face (Mirror Image)
+            img_flipped = cv2.flip(img_resized, 1)
+            X_data.append(img_flipped.flatten())
+            labels_list.append(student_name)
+            
+            # 3. Slightly Darker Face (Lighting Variation)
+            img_darker = cv2.convertScaleAbs(img_resized, alpha=0.8, beta=-15)
+            X_data.append(img_darker.flatten())
+            labels_list.append(student_name)
+            
+            # 4. Slightly Brighter Face
+            img_brighter = cv2.convertScaleAbs(img_resized, alpha=1.2, beta=15)
+            X_data.append(img_brighter.flatten())
+            labels_list.append(student_name)
                 
-    return np.array(X), np.array(y)
+    # 1 image * 4 variations = Huge Dataset automatically!
+    print(f"[METRICS] Successfully extracted and augmented {faces_detected_count * 4} unique facial samples!")
+    return np.array(X_data), np.array(labels_list)
 
 if __name__ == "__main__":
     DATASET_PATH = "dataset" 
     
-    # 1. Load and Flatten Image Data
-    X_raw, y = load_dataset_and_preprocess(DATASET_PATH)
+    X_raw, y_labels = load_dataset_and_preprocess(DATASET_PATH)
     
     if len(X_raw) == 0:
-        print("[ERROR] No valid pictures found in the dataset directory!")
+        print("[ERROR] No valid pictures found!")
         exit()
 
-    print(f"[SUCCESS] Loaded a total of {len(X_raw)} images into raw vector arrays.")
-
-    # 2. Encode Class Labels
     encoder = LabelEncoder()
-    y_encoded = encoder.fit_transform(y)
+    y_encoded = encoder.fit_transform(y_labels)
 
     with open("label_encoder.pkl", "wb") as f:
         pickle.dump(encoder, f)
 
-    # 3. Train/Test Split (80% Train, 20% Test)
     X_train_raw, X_test_raw, y_train, y_test = train_test_split(X_raw, y_encoded, test_size=0.2, random_state=42)
 
-    # 4. Feature Extraction via PCA (Dimensionality Reduction to capture variance)
-    print("[INFO] Projecting images into lower-dimensional structural feature space (PCA)...")
+    print("[INFO] Projecting features into PCA space...")
     n_components = min(50, len(X_train_raw))
     pca = PCA(n_components=n_components, whiten=True, random_state=42)
     
     X_train = pca.fit_transform(X_train_raw)
     X_test = pca.transform(X_test_raw)
 
-    # Save PCA transformer so Ramlah can reduce live frames the exact same way
     with open("pca_transformer.pkl", "wb") as f:
         pickle.dump(pca, f)
 
-    # 5. Initialize Classifiers
     models = {
         "SVM (RBF Kernel)": SVC(kernel='rbf', probability=True),
         "KNN (K=3)": KNeighborsClassifier(n_neighbors=3),
@@ -94,10 +131,8 @@ if __name__ == "__main__":
     best_model = None
     best_model_name = ""
 
-    # 6. Training and Evaluation
     for name, model in models.items():
         model.fit(X_train, y_train)
-        
         start_time = time.time()
         predictions = model.predict(X_test)
         end_time = time.time()
@@ -120,12 +155,10 @@ if __name__ == "__main__":
     print("="*65)
     print(f"[RESULT] Optimal Model: {best_model_name} with {best_accuracy:.2f}% Accuracy")
 
-    # 7. Save Trained Model Weights
     with open("best_identity_model.pkl", "wb") as f:
         pickle.dump(best_model, f)
-    print("[INFO] 'best_identity_model.pkl' has been successfully exported!")
+    print("[INFO] 'best_identity_model.pkl' saved successfully!")
 
-    # 8. Performance Visualization Export
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
     ax1.bar(model_names, accuracies, color=['#1f77b4', '#ff7f0e', '#2ca02c'])
     ax1.set_title('Model Accuracy Comparison (%)')
@@ -142,4 +175,4 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.savefig("model_comparison_metrics.png")
-    print("[SUCCESS] Analytical chart 'model_comparison_metrics.png' has been saved successfully!")
+    print("[SUCCESS] New analytical chart saved!")
