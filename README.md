@@ -1,41 +1,38 @@
-# InClass Alert: Smart Attendance with Liveness Detection 🛡️📸
+# 🛡️ InClass Alert: Dual-Engine Smart Attendance System
 
-### Machine Learning Fundamentals (BCS-6A) - Project Proposal
+An advanced, real-time facial recognition and anti-spoofing attendance system built for modern educational environments. **InClass Alert** eliminates manual roll calls and proxy attendance by deploying a dual-model architecture that not only verifies identity but mathematically blocks digital presentation attacks (photos/screens).
 
-**InClass Alert** is an automated, vision-based attendance system designed to eliminate manual roll calls and proxy attendance. By combining **FaceNet** embeddings with **ML Classifiers**, the system identifies students while simultaneously performing **Liveness Detection** to distinguish real faces from spoof attempts (photos or screens).
+## ✨ Key Features
+* **Dual-Engine Authentication:** Simultaneously processes Identity and Liveness in real-time.
+* **Temporal Smoothing:** Utilizes a 50-frame majority-voting algorithm to eliminate flickering and prevent false positives.
+* **Premium UI/UX:** Built with a custom Streamlit Dark Mode featuring glassmorphism elements, dynamic sidebars, and real-time bounding boxes.
+* **Lightweight & Fast:** Engineered to run on standard laptop hardware without requiring a heavy GPU, processing frames in milliseconds.
 
----
+## 🧠 The Architecture
+Instead of relying on a single, easily fooled deep learning model, InClass Alert splits the workload:
 
-## 2. Team Members (BCS-6A)
-* **Muhammad Talal** (FA23-BCS-028)
-* **Haleema Zafar** (FA23-BCS-008)
-* **Ramlah Munir** (FA23-BCS-037) 
-
-**Submitted To:** Dr. Sheraz Anjum
-
----
-
-## 🚀 Key Features
-* **Facial Recognition:** Multi-class classification identifying students from 128-D embeddings.
-* **Anti-Spoofing (Liveness):** Binary classification (Real vs. Fake) to prevent digital/print attacks.
-* **Comparative Analysis:** Performance evaluation across **SVM, KNN, and Random Forest**.
-* **Real-time Performance:** Optimized for low inference latency (ms/frame).
+1. **The Identity Engine (FaceNet + PCA + SVM)**
+   * Extracts 128-D geometric facial embeddings using FaceNet.
+   * Compresses 4,096 raw pixels into 50 core mathematical components via PCA.
+   * Classifies the identity using a Support Vector Machine (SVM) trained for 100% accuracy on low-volume datasets (50 images/student).
+2. **The Anti-Spoofing Engine (Texture Analysis + Logistic Regression)**
+   * Bypasses geometric spoofing by analyzing flat screen glare, moiré patterns, and bezels.
+   * Extracts $64 \times 64$ grayscale pixel textures from precise bounding boxes.
+   * Uses Logistic Regression to draw a strict boundary between "Human Skin Texture" and "Digital Screen Texture."
 
 ## 🛠️ Tech Stack
-- **Language:** Python
-- **Feature Extraction:** FaceNet (Pre-trained Deep Learning Model)
-- **ML Classifiers:** Scikit-Learn (SVM, Logistic Regression, Random Forest, KNN)
-- **Computer Vision:** OpenCV
-- **Data Source:** Kaggle (Liveness) & Self-Collected (Student IDs)
+* **Language:** Python
+* **Computer Vision:** OpenCV
+* **Machine Learning:** Scikit-Learn (SVM, PCA, Logistic Regression)
+* **Deep Learning Feature Extraction:** Keras FaceNet
+* **Frontend/Dashboard:** Streamlit (Custom CSS injected)
 
-## 📁 Project Structure
-```text
-├── data/               # Raw and processed datasets (Gitignored)
-├── models/             # Saved .pkl files for SVM/RF/LR
-├── notebooks/          # Jupyter notebooks for EDA and Training
-├── src/
-│   ├── preprocess.py   # Image processing and embedding extraction
-│   ├── train.py        # Model training and comparison scripts
-│   └── inference.py    # Real-time camera feed attendance script
-├── requirements.txt    # Project dependencies
-└── README.md
+## 🚀 How to Run Locally
+1. Clone the repository: `git clone https://github.com/your-username/InClass-Alert.git`
+2. Install dependencies: `pip install -r requirements.txt`
+3. Launch the Master Dashboard: `streamlit run app.py`
+
+## 👥 The Team
+* **Ramlah Munir** (Live Authentication & Liveness)
+* **Haleema Zafar** (Identity Engine & Comparative Analysis)
+* **Muhammad Talal** (Enrollment UI & Database)
